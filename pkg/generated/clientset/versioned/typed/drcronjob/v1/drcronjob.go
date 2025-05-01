@@ -19,14 +19,15 @@ limitations under the License.
 package v1
 
 import (
-	context "context"
+	"context"
+	"time"
 
-	drcronjobv1 "github.com/carapuces/drcronjobclient/pkg/apis/drcronjob/v1"
+	v1 "github.com/carapuces/drcronjobclient/pkg/apis/drcronjob/v1"
 	scheme "github.com/carapuces/drcronjobclient/pkg/generated/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	gentype "k8s.io/client-go/gentype"
+	rest "k8s.io/client-go/rest"
 )
 
 // DRCronJobsGetter has a method to return a DRCronJobInterface.
@@ -37,34 +38,158 @@ type DRCronJobsGetter interface {
 
 // DRCronJobInterface has methods to work with DRCronJob resources.
 type DRCronJobInterface interface {
-	Create(ctx context.Context, dRCronJob *drcronjobv1.DRCronJob, opts metav1.CreateOptions) (*drcronjobv1.DRCronJob, error)
-	Update(ctx context.Context, dRCronJob *drcronjobv1.DRCronJob, opts metav1.UpdateOptions) (*drcronjobv1.DRCronJob, error)
-	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-	UpdateStatus(ctx context.Context, dRCronJob *drcronjobv1.DRCronJob, opts metav1.UpdateOptions) (*drcronjobv1.DRCronJob, error)
+	Create(ctx context.Context, dRCronJob *v1.DRCronJob, opts metav1.CreateOptions) (*v1.DRCronJob, error)
+	Update(ctx context.Context, dRCronJob *v1.DRCronJob, opts metav1.UpdateOptions) (*v1.DRCronJob, error)
+	UpdateStatus(ctx context.Context, dRCronJob *v1.DRCronJob, opts metav1.UpdateOptions) (*v1.DRCronJob, error)
 	Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error
-	Get(ctx context.Context, name string, opts metav1.GetOptions) (*drcronjobv1.DRCronJob, error)
-	List(ctx context.Context, opts metav1.ListOptions) (*drcronjobv1.DRCronJobList, error)
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.DRCronJob, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*v1.DRCronJobList, error)
 	Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *drcronjobv1.DRCronJob, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.DRCronJob, err error)
 	DRCronJobExpansion
 }
 
 // dRCronJobs implements DRCronJobInterface
 type dRCronJobs struct {
-	*gentype.ClientWithList[*drcronjobv1.DRCronJob, *drcronjobv1.DRCronJobList]
+	client rest.Interface
+	ns     string
 }
 
 // newDRCronJobs returns a DRCronJobs
 func newDRCronJobs(c *BatchV1Client, namespace string) *dRCronJobs {
 	return &dRCronJobs{
-		gentype.NewClientWithList[*drcronjobv1.DRCronJob, *drcronjobv1.DRCronJobList](
-			"drcronjobs",
-			c.RESTClient(),
-			scheme.ParameterCodec,
-			namespace,
-			func() *drcronjobv1.DRCronJob { return &drcronjobv1.DRCronJob{} },
-			func() *drcronjobv1.DRCronJobList { return &drcronjobv1.DRCronJobList{} },
-		),
+		client: c.RESTClient(),
+		ns:     namespace,
 	}
+}
+
+// Get takes name of the dRCronJob, and returns the corresponding dRCronJob object, and an error if there is any.
+func (c *dRCronJobs) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.DRCronJob, err error) {
+	result = &v1.DRCronJob{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("drcronjobs").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of DRCronJobs that match those selectors.
+func (c *dRCronJobs) List(ctx context.Context, opts metav1.ListOptions) (result *v1.DRCronJobList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
+	result = &v1.DRCronJobList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("drcronjobs").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested dRCronJobs.
+func (c *dRCronJobs) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("drcronjobs").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
+		Watch(ctx)
+}
+
+// Create takes the representation of a dRCronJob and creates it.  Returns the server's representation of the dRCronJob, and an error, if there is any.
+func (c *dRCronJobs) Create(ctx context.Context, dRCronJob *v1.DRCronJob, opts metav1.CreateOptions) (result *v1.DRCronJob, err error) {
+	result = &v1.DRCronJob{}
+	err = c.client.Post().
+		Namespace(c.ns).
+		Resource("drcronjobs").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(dRCronJob).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Update takes the representation of a dRCronJob and updates it. Returns the server's representation of the dRCronJob, and an error, if there is any.
+func (c *dRCronJobs) Update(ctx context.Context, dRCronJob *v1.DRCronJob, opts metav1.UpdateOptions) (result *v1.DRCronJob, err error) {
+	result = &v1.DRCronJob{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("drcronjobs").
+		Name(dRCronJob.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(dRCronJob).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *dRCronJobs) UpdateStatus(ctx context.Context, dRCronJob *v1.DRCronJob, opts metav1.UpdateOptions) (result *v1.DRCronJob, err error) {
+	result = &v1.DRCronJob{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("drcronjobs").
+		Name(dRCronJob.Name).
+		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(dRCronJob).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// Delete takes name of the dRCronJob and deletes it. Returns an error if one occurs.
+func (c *dRCronJobs) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	return c.client.Delete().
+		Namespace(c.ns).
+		Resource("drcronjobs").
+		Name(name).
+		Body(&opts).
+		Do(ctx).
+		Error()
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *dRCronJobs) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
+	}
+	return c.client.Delete().
+		Namespace(c.ns).
+		Resource("drcronjobs").
+		VersionedParams(&listOpts, scheme.ParameterCodec).
+		Timeout(timeout).
+		Body(&opts).
+		Do(ctx).
+		Error()
+}
+
+// Patch applies the patch and returns the patched dRCronJob.
+func (c *dRCronJobs) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.DRCronJob, err error) {
+	result = &v1.DRCronJob{}
+	err = c.client.Patch(pt).
+		Namespace(c.ns).
+		Resource("drcronjobs").
+		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(data).
+		Do(ctx).
+		Into(result)
+	return
 }

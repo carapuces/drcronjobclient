@@ -19,30 +19,123 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1 "github.com/carapuces/drcronjobclient/pkg/apis/drcronjob/v1"
-	drcronjobv1 "github.com/carapuces/drcronjobclient/pkg/generated/clientset/versioned/typed/drcronjob/v1"
-	gentype "k8s.io/client-go/gentype"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	testing "k8s.io/client-go/testing"
 )
 
-// fakeDRCronJobs implements DRCronJobInterface
-type fakeDRCronJobs struct {
-	*gentype.FakeClientWithList[*v1.DRCronJob, *v1.DRCronJobList]
+// FakeDRCronJobs implements DRCronJobInterface
+type FakeDRCronJobs struct {
 	Fake *FakeBatchV1
+	ns   string
 }
 
-func newFakeDRCronJobs(fake *FakeBatchV1, namespace string) drcronjobv1.DRCronJobInterface {
-	return &fakeDRCronJobs{
-		gentype.NewFakeClientWithList[*v1.DRCronJob, *v1.DRCronJobList](
-			fake.Fake,
-			namespace,
-			v1.SchemeGroupVersion.WithResource("drcronjobs"),
-			v1.SchemeGroupVersion.WithKind("DRCronJob"),
-			func() *v1.DRCronJob { return &v1.DRCronJob{} },
-			func() *v1.DRCronJobList { return &v1.DRCronJobList{} },
-			func(dst, src *v1.DRCronJobList) { dst.ListMeta = src.ListMeta },
-			func(list *v1.DRCronJobList) []*v1.DRCronJob { return gentype.ToPointerSlice(list.Items) },
-			func(list *v1.DRCronJobList, items []*v1.DRCronJob) { list.Items = gentype.FromPointerSlice(items) },
-		),
-		fake,
+var drcronjobsResource = v1.SchemeGroupVersion.WithResource("drcronjobs")
+
+var drcronjobsKind = v1.SchemeGroupVersion.WithKind("DRCronJob")
+
+// Get takes name of the dRCronJob, and returns the corresponding dRCronJob object, and an error if there is any.
+func (c *FakeDRCronJobs) Get(ctx context.Context, name string, options metav1.GetOptions) (result *v1.DRCronJob, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewGetAction(drcronjobsResource, c.ns, name), &v1.DRCronJob{})
+
+	if obj == nil {
+		return nil, err
 	}
+	return obj.(*v1.DRCronJob), err
+}
+
+// List takes label and field selectors, and returns the list of DRCronJobs that match those selectors.
+func (c *FakeDRCronJobs) List(ctx context.Context, opts metav1.ListOptions) (result *v1.DRCronJobList, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewListAction(drcronjobsResource, drcronjobsKind, c.ns, opts), &v1.DRCronJobList{})
+
+	if obj == nil {
+		return nil, err
+	}
+
+	label, _, _ := testing.ExtractFromListOptions(opts)
+	if label == nil {
+		label = labels.Everything()
+	}
+	list := &v1.DRCronJobList{ListMeta: obj.(*v1.DRCronJobList).ListMeta}
+	for _, item := range obj.(*v1.DRCronJobList).Items {
+		if label.Matches(labels.Set(item.Labels)) {
+			list.Items = append(list.Items, item)
+		}
+	}
+	return list, err
+}
+
+// Watch returns a watch.Interface that watches the requested dRCronJobs.
+func (c *FakeDRCronJobs) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.
+		InvokesWatch(testing.NewWatchAction(drcronjobsResource, c.ns, opts))
+
+}
+
+// Create takes the representation of a dRCronJob and creates it.  Returns the server's representation of the dRCronJob, and an error, if there is any.
+func (c *FakeDRCronJobs) Create(ctx context.Context, dRCronJob *v1.DRCronJob, opts metav1.CreateOptions) (result *v1.DRCronJob, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateAction(drcronjobsResource, c.ns, dRCronJob), &v1.DRCronJob{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1.DRCronJob), err
+}
+
+// Update takes the representation of a dRCronJob and updates it. Returns the server's representation of the dRCronJob, and an error, if there is any.
+func (c *FakeDRCronJobs) Update(ctx context.Context, dRCronJob *v1.DRCronJob, opts metav1.UpdateOptions) (result *v1.DRCronJob, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(drcronjobsResource, c.ns, dRCronJob), &v1.DRCronJob{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1.DRCronJob), err
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeDRCronJobs) UpdateStatus(ctx context.Context, dRCronJob *v1.DRCronJob, opts metav1.UpdateOptions) (*v1.DRCronJob, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(drcronjobsResource, "status", c.ns, dRCronJob), &v1.DRCronJob{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1.DRCronJob), err
+}
+
+// Delete takes name of the dRCronJob and deletes it. Returns an error if one occurs.
+func (c *FakeDRCronJobs) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteActionWithOptions(drcronjobsResource, c.ns, name, opts), &v1.DRCronJob{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeDRCronJobs) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(drcronjobsResource, c.ns, listOpts)
+
+	_, err := c.Fake.Invokes(action, &v1.DRCronJobList{})
+	return err
+}
+
+// Patch applies the patch and returns the patched dRCronJob.
+func (c *FakeDRCronJobs) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1.DRCronJob, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(drcronjobsResource, c.ns, name, pt, data, subresources...), &v1.DRCronJob{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1.DRCronJob), err
 }

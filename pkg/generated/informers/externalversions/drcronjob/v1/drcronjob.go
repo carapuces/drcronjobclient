@@ -19,13 +19,13 @@ limitations under the License.
 package v1
 
 import (
-	context "context"
+	"context"
 	time "time"
 
-	apisdrcronjobv1 "github.com/carapuces/drcronjobclient/pkg/apis/drcronjob/v1"
+	drcronjobv1 "github.com/carapuces/drcronjobclient/pkg/apis/drcronjob/v1"
 	versioned "github.com/carapuces/drcronjobclient/pkg/generated/clientset/versioned"
 	internalinterfaces "github.com/carapuces/drcronjobclient/pkg/generated/informers/externalversions/internalinterfaces"
-	drcronjobv1 "github.com/carapuces/drcronjobclient/pkg/generated/listers/drcronjob/v1"
+	v1 "github.com/carapuces/drcronjobclient/pkg/generated/listers/drcronjob/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -36,7 +36,7 @@ import (
 // DRCronJobs.
 type DRCronJobInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() drcronjobv1.DRCronJobLister
+	Lister() v1.DRCronJobLister
 }
 
 type dRCronJobInformer struct {
@@ -62,28 +62,16 @@ func NewFilteredDRCronJobInformer(client versioned.Interface, namespace string, 
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BatchV1().DRCronJobs(namespace).List(context.Background(), options)
+				return client.BatchV1().DRCronJobs(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BatchV1().DRCronJobs(namespace).Watch(context.Background(), options)
-			},
-			ListWithContextFunc: func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
-				if tweakListOptions != nil {
-					tweakListOptions(&options)
-				}
-				return client.BatchV1().DRCronJobs(namespace).List(ctx, options)
-			},
-			WatchFuncWithContext: func(ctx context.Context, options metav1.ListOptions) (watch.Interface, error) {
-				if tweakListOptions != nil {
-					tweakListOptions(&options)
-				}
-				return client.BatchV1().DRCronJobs(namespace).Watch(ctx, options)
+				return client.BatchV1().DRCronJobs(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&apisdrcronjobv1.DRCronJob{},
+		&drcronjobv1.DRCronJob{},
 		resyncPeriod,
 		indexers,
 	)
@@ -94,9 +82,9 @@ func (f *dRCronJobInformer) defaultInformer(client versioned.Interface, resyncPe
 }
 
 func (f *dRCronJobInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisdrcronjobv1.DRCronJob{}, f.defaultInformer)
+	return f.factory.InformerFor(&drcronjobv1.DRCronJob{}, f.defaultInformer)
 }
 
-func (f *dRCronJobInformer) Lister() drcronjobv1.DRCronJobLister {
-	return drcronjobv1.NewDRCronJobLister(f.Informer().GetIndexer())
+func (f *dRCronJobInformer) Lister() v1.DRCronJobLister {
+	return v1.NewDRCronJobLister(f.Informer().GetIndexer())
 }

@@ -19,10 +19,10 @@ limitations under the License.
 package v1
 
 import (
-	drcronjobv1 "github.com/carapuces/drcronjobclient/pkg/apis/drcronjob/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	listers "k8s.io/client-go/listers"
-	cache "k8s.io/client-go/tools/cache"
+	v1 "github.com/carapuces/drcronjobclient/pkg/apis/drcronjob/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/tools/cache"
 )
 
 // DRCronJobLister helps list DRCronJobs.
@@ -30,7 +30,7 @@ import (
 type DRCronJobLister interface {
 	// List lists all DRCronJobs in the indexer.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*drcronjobv1.DRCronJob, err error)
+	List(selector labels.Selector) (ret []*v1.DRCronJob, err error)
 	// DRCronJobs returns an object that can list and get DRCronJobs.
 	DRCronJobs(namespace string) DRCronJobNamespaceLister
 	DRCronJobListerExpansion
@@ -38,17 +38,25 @@ type DRCronJobLister interface {
 
 // dRCronJobLister implements the DRCronJobLister interface.
 type dRCronJobLister struct {
-	listers.ResourceIndexer[*drcronjobv1.DRCronJob]
+	indexer cache.Indexer
 }
 
 // NewDRCronJobLister returns a new DRCronJobLister.
 func NewDRCronJobLister(indexer cache.Indexer) DRCronJobLister {
-	return &dRCronJobLister{listers.New[*drcronjobv1.DRCronJob](indexer, drcronjobv1.Resource("drcronjob"))}
+	return &dRCronJobLister{indexer: indexer}
+}
+
+// List lists all DRCronJobs in the indexer.
+func (s *dRCronJobLister) List(selector labels.Selector) (ret []*v1.DRCronJob, err error) {
+	err = cache.ListAll(s.indexer, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1.DRCronJob))
+	})
+	return ret, err
 }
 
 // DRCronJobs returns an object that can list and get DRCronJobs.
 func (s *dRCronJobLister) DRCronJobs(namespace string) DRCronJobNamespaceLister {
-	return dRCronJobNamespaceLister{listers.NewNamespaced[*drcronjobv1.DRCronJob](s.ResourceIndexer, namespace)}
+	return dRCronJobNamespaceLister{indexer: s.indexer, namespace: namespace}
 }
 
 // DRCronJobNamespaceLister helps list and get DRCronJobs.
@@ -56,15 +64,36 @@ func (s *dRCronJobLister) DRCronJobs(namespace string) DRCronJobNamespaceLister 
 type DRCronJobNamespaceLister interface {
 	// List lists all DRCronJobs in the indexer for a given namespace.
 	// Objects returned here must be treated as read-only.
-	List(selector labels.Selector) (ret []*drcronjobv1.DRCronJob, err error)
+	List(selector labels.Selector) (ret []*v1.DRCronJob, err error)
 	// Get retrieves the DRCronJob from the indexer for a given namespace and name.
 	// Objects returned here must be treated as read-only.
-	Get(name string) (*drcronjobv1.DRCronJob, error)
+	Get(name string) (*v1.DRCronJob, error)
 	DRCronJobNamespaceListerExpansion
 }
 
 // dRCronJobNamespaceLister implements the DRCronJobNamespaceLister
 // interface.
 type dRCronJobNamespaceLister struct {
-	listers.ResourceIndexer[*drcronjobv1.DRCronJob]
+	indexer   cache.Indexer
+	namespace string
+}
+
+// List lists all DRCronJobs in the indexer for a given namespace.
+func (s dRCronJobNamespaceLister) List(selector labels.Selector) (ret []*v1.DRCronJob, err error) {
+	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
+		ret = append(ret, m.(*v1.DRCronJob))
+	})
+	return ret, err
+}
+
+// Get retrieves the DRCronJob from the indexer for a given namespace and name.
+func (s dRCronJobNamespaceLister) Get(name string) (*v1.DRCronJob, error) {
+	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, errors.NewNotFound(v1.Resource("drcronjob"), name)
+	}
+	return obj.(*v1.DRCronJob), nil
 }

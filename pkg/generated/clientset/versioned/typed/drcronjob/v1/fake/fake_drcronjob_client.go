@@ -29,7 +29,7 @@ type FakeBatchV1 struct {
 }
 
 func (c *FakeBatchV1) DRCronJobs(namespace string) v1.DRCronJobInterface {
-	return newFakeDRCronJobs(c, namespace)
+	return &FakeDRCronJobs{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

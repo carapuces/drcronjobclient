@@ -19,8 +19,8 @@ limitations under the License.
 package versioned
 
 import (
-	fmt "fmt"
-	http "net/http"
+	"fmt"
+	"net/http"
 
 	batchv1 "github.com/carapuces/drcronjobclient/pkg/generated/clientset/versioned/typed/drcronjob/v1"
 	discovery "k8s.io/client-go/discovery"
